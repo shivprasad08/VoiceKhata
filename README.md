@@ -1,10 +1,10 @@
-# VoiceKhata Demo Environment
+# VoiceKhata
 
-VoiceKhata is an AI-powered ledger (khata) system for Indian kirana store owners. This repository contains the complete local hackathon demo environment, configured for instant deployment.
+VoiceKhata is an AI-powered ledger (khata) system for Indian kirana store owners. This repository contains the complete full-stack environment, configured for instant deployment.
 
 ## Quick Start (One-Command Setup)
 
-For judges and developers running this locally, you only need one command. Ensure you have Docker and Docker Compose installed.
+To run this locally, you only need one command. Ensure you have Docker and Docker Compose installed.
 
 ```bash
 docker-compose up -d --build
@@ -25,10 +25,10 @@ docker-compose up -d --build
 
 ## Demo Mode
 
-The `.env.demo` variables are automatically injected via Docker Compose.
+The `.env.demo` variables are automatically injected via Docker Compose to make local testing easy.
 The critical flag is `DEMO_MODE=true`. 
 - **Auto-Seeding**: When the FastAPI server starts, if it detects an empty database, it instantly runs `seed.py` to generate the demo user and 30 days of realistic transactions.
-- **Auth Bypass**: It uses a fixed demo UUID (`11111111-1111-1111-1111-111111111111`) so the dashboard works instantly without a login wall.
+- **Auth Bypass**: It uses a fixed demo user so the dashboard works instantly without a login wall.
 
 If you ever want to reset the data, simply delete the Docker volume (`docker-compose down -v`) and run `docker-compose up` again.
 
