@@ -174,7 +174,36 @@ async def get_today_summary(user_id: int, db: AsyncSession = Depends(get_db)):
     row = result.first()
     sales = float(row.total_sales or 0)
     expenses = float(row.total_expenses or 0)
-    return {"total_sales": sales, "total_expenses": expenses, "profit": sales - expenses}
+    profit = sales - expenses
+
+    # Yesterday's data
+    yesterday = date.today() - timedelta(days=1)
+    y_query = select(
+        func.sum(case((Transaction.type == 'sale', Transaction.amount), else_=0)).label('total_sales'),
+        func.sum(case((Transaction.type == 'expense', Transaction.amount), else_=0)).label('total_expenses')
+    ).where(Transaction.user_id == user_id).where(Transaction.date == yesterday)
+    
+    y_result = await db.execute(y_query)
+    y_row = y_result.first()
+    y_sales = float(y_row.total_sales or 0)
+    y_expenses = float(y_row.total_expenses or 0)
+    y_profit = y_sales - y_expenses
+
+    sales_change = ((sales - y_sales) / y_sales * 100) if y_sales > 0 else (100 if sales > 0 else 0)
+    expenses_change = ((expenses - y_expenses) / y_expenses * 100) if y_expenses > 0 else (100 if expenses > 0 else 0)
+    profit_change = ((profit - y_profit) / abs(y_profit) * 100) if y_profit != 0 else (100 if profit > 0 else (0 if profit == 0 else -100))
+
+    return {
+        "total_sales": sales, 
+        "total_expenses": expenses, 
+        "profit": profit,
+        "sales_change": round(sales_change, 2),
+        "expenses_change": round(expenses_change, 2),
+        "profit_change": round(profit_change, 2),
+        "y_sales": y_sales,
+        "y_expenses": y_expenses,
+        "y_profit": y_profit
+    }
 
 @router.get("/monthly")
 async def get_monthly_summary(user_id: int, db: AsyncSession = Depends(get_db)):
@@ -187,6 +216,19 @@ async def get_monthly_summary(user_id: int, db: AsyncSession = Depends(get_db)):
     itc_res = await db.execute(itc_query)
     itc = float(itc_res.first().total_gst or 0)
     
+    # Last month ITC
+    last_month_end = start_date - timedelta(days=1)
+    last_month_start = last_month_end.replace(day=1)
+    y_itc_query = select(func.sum(Transaction.gst_amount).label('total_gst'))\
+        .where(Transaction.user_id == user_id)\
+        .where(Transaction.gst_applicable == True)\
+        .where(Transaction.date >= last_month_start)\
+        .where(Transaction.date <= last_month_end)
+    y_itc_res = await db.execute(y_itc_query)
+    y_itc = float(y_itc_res.first().total_gst or 0)
+
+    itc_change = ((itc - y_itc) / y_itc * 100) if y_itc > 0 else (100 if itc > 0 else 0)
+
     cat_query = select(Transaction.category, func.sum(Transaction.amount).label('amount'))\
         .where(Transaction.user_id == user_id)\
         .where(Transaction.type == 'expense')\
@@ -196,7 +238,11 @@ async def get_monthly_summary(user_id: int, db: AsyncSession = Depends(get_db)):
     categories = [{"category": row.category, "amount": float(row.amount)} for row in cat_res.all()]
     
     return {
-        "gst_summary": {"total_gst_paid": itc},
+        "gst_summary": {
+            "total_gst_paid": itc,
+            "gst_change": round(itc_change, 2),
+            "y_itc": y_itc
+        },
         "category_breakdown": categories
     }
 

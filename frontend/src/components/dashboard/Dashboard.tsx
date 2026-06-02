@@ -23,7 +23,11 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenManualEntry }) => {
 
   // Data State
   const [liveFeed, setLiveFeed] = useState<FeedTransaction[]>([]);
-  const [kpi, setKpi] = useState({ sales: 0, expenses: 0, profit: 0, gstCredit: 0 });
+  const [kpi, setKpi] = useState({ 
+    sales: 0, expenses: 0, profit: 0, gstCredit: 0,
+    salesChange: 0, expensesChange: 0, profitChange: 0, gstChange: 0,
+    ySales: 0, yExpenses: 0, yProfit: 0, yGst: 0
+  });
   const [donutData, setDonutData] = useState({ sales: 0, expenses: 0, udhar: 0 });
   const [trendData, setTrendData] = useState<any[]>([]);
   const [topExpenses, setTopExpenses] = useState<any[]>([]);
@@ -40,7 +44,18 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenManualEntry }) => {
         const todayRes = await fetch(`/api/summary/today?user_id=${USER_ID}`);
         if (todayRes.ok) {
           const todayData = await todayRes.json();
-          setKpi(prev => ({ ...prev, sales: todayData.total_sales, expenses: todayData.total_expenses, profit: todayData.profit }));
+          setKpi(prev => ({ 
+            ...prev, 
+            sales: todayData.total_sales, 
+            expenses: todayData.total_expenses, 
+            profit: todayData.profit,
+            salesChange: todayData.sales_change,
+            expensesChange: todayData.expenses_change,
+            profitChange: todayData.profit_change,
+            ySales: todayData.y_sales,
+            yExpenses: todayData.y_expenses,
+            yProfit: todayData.y_profit
+          }));
           setDonutData(prev => ({ ...prev, sales: todayData.total_sales, expenses: todayData.total_expenses }));
         }
 
@@ -48,7 +63,12 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenManualEntry }) => {
         const monthlyRes = await fetch(`/api/summary/monthly?user_id=${USER_ID}`);
         if (monthlyRes.ok) {
           const monthlyData = await monthlyRes.json();
-          setKpi(prev => ({ ...prev, gstCredit: monthlyData.gst_summary.total_gst_paid }));
+          setKpi(prev => ({ 
+            ...prev, 
+            gstCredit: monthlyData.gst_summary.total_gst_paid,
+            gstChange: monthlyData.gst_summary.gst_change,
+            yGst: monthlyData.gst_summary.y_itc
+          }));
           setTopExpenses(monthlyData.category_breakdown.sort((a:any, b:any) => b.amount - a.amount).slice(0, 5));
         }
 
