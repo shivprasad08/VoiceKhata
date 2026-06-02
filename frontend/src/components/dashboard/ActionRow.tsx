@@ -2,7 +2,6 @@ import React from 'react';
 import { PlusCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import SoundboxListener from './SoundboxListener';
-import AISummary from './AISummary';
 
 interface ActionRowProps {
   userId: number;
@@ -43,7 +42,7 @@ const ActionRow: React.FC<ActionRowProps> = ({ userId, onOpenManualEntry }) => {
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
       
       {/* Soundbox Listener Component */}
       <SoundboxListener 
@@ -59,9 +58,6 @@ const ActionRow: React.FC<ActionRowProps> = ({ userId, onOpenManualEntry }) => {
         <h3 className="text-lg font-bold text-white mb-1">Log Transaction</h3>
         <p className="text-sm text-gray-400">Manually record a sale, expense, or udhar entry.</p>
       </div>
-
-      {/* AI Summary Component */}
-      <AISummary userId={userId} />
       
     </div>
   );

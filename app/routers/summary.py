@@ -23,6 +23,16 @@ class AIGenerateRequest(BaseModel):
     user_id: int
     period: str # "weekly" | "monthly"
 
+class ChatMessageModel(BaseModel):
+    role: str
+    content: str
+
+class ChatRequest(BaseModel):
+    user_id: str
+    messages: List[ChatMessageModel]
+    context: dict
+    language: str
+
 class AIGenerateResponse(BaseModel):
     hindi: str
     english: str
@@ -259,3 +269,47 @@ async def get_weekly_summary(user_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(query)
     breakdown = [{"date": row.date.isoformat(), "sales": float(row.sales), "expenses": float(row.expenses)} for row in result.all()]
     return {"daily_breakdown": breakdown}
+
+@router.post("/chat")
+async def chat_with_advisor(req: ChatRequest):
+    api_key = os.getenv("GROQ_API_KEY")
+    if not GROQ_AVAILABLE or not api_key:
+        return {"reply": ("Demo mode: I'm not connected to the real AI right now. Please set GROQ_API_KEY." if req.language == "english" else "Demo mode: मैं अभी असली AI से connected नहीं हूँ। GROQ_API_KEY set करें।")}
+        
+    try:
+        client = AsyncGroq(api_key=api_key)
+        
+        system_prompt = f"""You are VoiceKhata AI assistant for {req.user_id}. You are a helpful, conversational business advisor for an Indian kirana store owner.
+
+You have access to this business context:
+{json.dumps(req.context, ensure_ascii=False)}
+
+Answer questions about:
+- Their transactions, sales, expenses
+- Specific customer udhar amounts
+- GST calculations
+- Business advice
+
+Rules:
+- Always respond in {'Hindi (with Hindi numerals like १, २, ३)' if req.language == 'hindi' else 'English'}
+- Be specific — cite actual ₹ amounts from the data
+- If they ask about a transaction or customer not in the data, say you can only see the current period
+- Keep responses concise — 2-4 sentences max unless they ask for detail
+- Sound like a friendly CA, not a robot"""
+
+        # Prepare messages
+        messages = [{"role": "system", "content": system_prompt}]
+        for m in req.messages:
+            messages.append({"role": m.role, "content": m.content})
+            
+        response = await client.chat.completions.create(
+            messages=messages,
+            model="llama-3.3-70b-versatile",
+            temperature=0.7,
+            max_tokens=1000,
+        )
+        
+        return {"reply": response.choices[0].message.content}
+    except Exception as e:
+        print(f"Groq Chat API Error: {e}")
+        return {"reply": "Connection issue है। Backend check करें। (Error in AI API)"}

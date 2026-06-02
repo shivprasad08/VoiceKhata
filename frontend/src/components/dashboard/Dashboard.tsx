@@ -7,6 +7,7 @@ import { DonutChart, WeeklyTrendLine, TopExpensesBar } from './Charts';
 import UdharTable from './UdharTable';
 import type { UdharEntry } from './UdharTable';
 import ActionRow from './ActionRow';
+import AIAdvisor from '../AIAdvisor';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import { format, subDays } from 'date-fns';
 
@@ -164,35 +165,43 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenManualEntry }) => {
     <div className="min-h-screen bg-khata-dark text-white pb-10 font-sans">
       <TopBar isConnected={isConnected} />
       
-      <div className="max-w-[1600px] mx-auto px-6 py-6">
+      <div className="flex flex-col xl:flex-row px-4 lg:px-6 py-6 max-w-[1800px] mx-auto gap-6 items-start">
         
-        {/* Row 1: KPI Cards */}
-        <KPICards {...kpi} />
+        {/* Main Left Content */}
+        <div className="flex-1 min-w-0 w-full space-y-6">
+          {/* Row 1: KPI Cards */}
+          <KPICards {...kpi} />
 
-        {/* Row 5: Actions (Demo Tools) - Moved up for better demo visibility */}
-        <ActionRow userId={USER_ID} onOpenManualEntry={onOpenManualEntry} />
-        
-        {/* Row 2: Live Feed & Donut Chart */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-6">
-          <div className="lg:col-span-3">
-            <LiveFeed transactions={liveFeed} />
-          </div>
-          <div className="lg:col-span-2">
+          {/* Row 2: Actions (Demo Tools) */}
+          <ActionRow userId={USER_ID} onOpenManualEntry={onOpenManualEntry} />
+
+          {/* Row 3: Trend & Categories */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <WeeklyTrendLine data={trendData} />
             <DonutChart {...donutData} />
           </div>
+
+          {/* Row 4: Live Feed */}
+          <div>
+            <LiveFeed transactions={liveFeed} />
+          </div>
+
+          {/* Row 5: Top Expenses */}
+          <div>
+            <TopExpensesBar data={topExpenses} />
+          </div>
+
+          {/* Row 6: Udhar Summary */}
+          <div>
+            <UdharTable data={udharData} totalOutstanding={totalUdhar} />
+          </div>
         </div>
 
-        {/* Row 3: Trend & Categories */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <WeeklyTrendLine data={trendData} />
-          <TopExpensesBar data={topExpenses} />
+        {/* Right Sidebar Area: AI Advisor */}
+        <div className="w-full xl:w-[400px] shrink-0 xl:sticky xl:top-6">
+          <AIAdvisor userId={USER_ID} />
         </div>
-
-        {/* Row 4: Udhar Summary */}
-        <div className="grid grid-cols-1 gap-6">
-          <UdharTable data={udharData} totalOutstanding={totalUdhar} />
-        </div>
-
+        
       </div>
     </div>
   );
