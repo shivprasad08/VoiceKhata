@@ -8,14 +8,12 @@ from sqlalchemy.future import select
 from sqlalchemy import func, case, desc
 from pydantic import BaseModel
 
-try:
-    from groq import AsyncGroq
-    GROQ_AVAILABLE = True
-except ImportError:
-    GROQ_AVAILABLE = False
+import aiohttp
+
+SARVAM_AVAILABLE = True
 
 from app.database import get_db
-from app.models import Transaction
+from app.models import Transaction, Udhar
 
 router = APIRouter(prefix="/api/summary", tags=["Summary"])
 
@@ -95,9 +93,9 @@ async def generate_ai_summary(user_id: int, period: str = "weekly", db: AsyncSes
     }
     
     # 4. Generate AI Summary using Groq
-    api_key = os.getenv("GROQ_API_KEY")
+    api_key = os.getenv("SARVAM_API_KEY")
     
-    if not GROQ_AVAILABLE or not api_key:
+    if not SARVAM_AVAILABLE or not api_key:
         return {
             "headline": f"इस {period} आपका कुल मुनाफा ₹{profit:,.0f} रहा।",
             "scorecard": {
@@ -110,12 +108,11 @@ async def generate_ai_summary(user_id: int, period: str = "weekly", db: AsyncSes
             "insights": [],
             "udhar_action": None,
             "gst_action": f"ITC ₹{itc:,.0f} available — claim in GSTR-3B.",
-            "next_week_goal": "Set GROQ_API_KEY for detailed insights.",
+            "next_week_goal": "Set SARVAM_API_KEY for detailed insights.",
             "generated_at": datetime.now().isoformat()
         }
         
     try:
-        client = AsyncGroq(api_key=api_key)
         
         system_prompt = """You are VoiceKhata AI — a sharp, no-nonsense financial advisor for Indian kirana store owners and small vendors.
 You speak like a trusted CA who knows the business deeply and gives real, specific advice — not textbook gyaan.
@@ -256,9 +253,9 @@ STRICT RULES — violating any of these makes the output useless:
         net_gst = gst_collected - gst_paid
         
         # Udhar summary (credit transactions)
-        udhar_q = select(func.sum(Transaction.amount).label('total_udhar'))\
-            .where(Transaction.user_id == user_id)\
-            .where(Transaction.type == 'udhar')
+        udhar_q = select(func.sum(Udhar.amount).label('total_udhar'))\
+            .where(Udhar.user_id == user_id)\
+            .where(Udhar.status == 'pending')
         udhar_result = await db.execute(udhar_q)
         total_udhar = float(udhar_result.first().total_udhar or 0)
         
@@ -266,12 +263,23 @@ STRICT RULES — violating any of these makes the output useless:
         business_name = f"User {user_id} Business"
         period_label = f"Last {days} days ({start_date.isoformat()} to {date.today().isoformat()})"
         
+        # Today's exact metrics (for perfect alignment with dashboard KPI cards)
+        today_query = select(
+            func.sum(case((Transaction.type == 'sale', Transaction.amount), else_=0)).label('today_sales'),
+            func.sum(case((Transaction.type == 'expense', Transaction.amount), else_=0)).label('today_expenses')
+        ).where(Transaction.user_id == user_id).where(Transaction.date == date.today())
+        today_res = await db.execute(today_query)
+        today_row = today_res.first()
+        today_sales = float(today_row.today_sales or 0)
+        today_expenses = float(today_row.today_expenses or 0)
+        today_profit = today_sales - today_expenses
+        
         user_prompt = f"""Analyse this business data and generate insights:
 
 BUSINESS: {business_name}
 PERIOD: {period_label}
 
-REVENUE & PROFIT
+REVENUE & PROFIT (Period: {period_label})
 - Sales this period:      ₹{sales:,.0f}
 - Sales last period:      ₹{prev_sales:,.0f} → {sales_change:+.1f}% change
 - Total expenses:         ₹{expenses:,.0f}
@@ -279,6 +287,11 @@ REVENUE & PROFIT
 - Net profit:             ₹{profit:,.0f}
 - Profit margin:          {margin:.1f}%
 - Transactions this period: {count}
+
+TODAY'S KPI METRICS (Live on Dashboard)
+- Today's Sales:      ₹{today_sales:,.0f}
+- Today's Expenses:   ₹{today_expenses:,.0f}
+- Today's Profit:     ₹{today_profit:,.0f}
 
 DAILY SALES BREAKDOWN (last 7 days)
 {daily_breakdown}
@@ -311,25 +324,36 @@ Now generate specific, data-driven insights. Be their trusted financial advisor.
 Reference exact numbers. Name specific customers and vendors. 
 Every action must be doable THIS WEEK."""
 
-        response = await client.chat.completions.create(
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            model="llama-3.3-70b-versatile",
-            temperature=0.6,
-            max_tokens=3000,
-            response_format={"type": "json_object"}
-        )
-        
-        response_text = response.choices[0].message.content
+        async with aiohttp.ClientSession() as session:
+            url = "https://api.sarvam.ai/v1/chat/completions"
+            headers = {
+                "API-Subscription-Key": api_key,
+                "Content-Type": "application/json"
+            }
+            payload = {
+                "model": "sarvam-105b",
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                "temperature": 0.6,
+                "max_tokens": 4000
+            }
+            async with session.post(url, json=payload, headers=headers) as resp:
+                if resp.status != 200:
+                    error_text = await resp.text()
+                    raise Exception(f"Sarvam API Error: {resp.status} - {error_text}")
+                response_json = await resp.json()
+                response_text = response_json["choices"][0]["message"]["content"]
         
         try:
             parsed = json.loads(response_text)
             parsed["generated_at"] = datetime.now().isoformat()
+            # Store the full rich context so the chat API can access ALL dashboard metrics
             parsed["raw_payload"] = {
                 "sales": sales, "expenses": expenses, "profit": profit,
-                "itc": itc, "best_day": best_day
+                "itc": itc, "best_day": best_day,
+                "full_context_for_chat": user_prompt
             }
             return parsed
         except json.JSONDecodeError:
@@ -350,7 +374,7 @@ Every action must be doable THIS WEEK."""
             }
         
     except Exception as e:
-        print(f"Groq API Error: {e}")
+        print(f"Sarvam API Error: {e}")
         return {
             "headline": f"इस {period} आपका कुल मुनाफा ₹{profit:,.0f} रहा। (AI error — basic data shown)",
             "scorecard": {
@@ -466,14 +490,13 @@ async def get_weekly_summary(user_id: int, db: AsyncSession = Depends(get_db)):
 
 @router.post("/chat")
 async def chat_with_advisor(req: ChatRequest):
-    api_key = os.getenv("GROQ_API_KEY")
-    if not GROQ_AVAILABLE or not api_key:
-        return {"reply": ("Demo mode: I'm not connected to the real AI right now. Please set GROQ_API_KEY." if req.language == "english" else "Demo mode: मैं अभी असली AI से connected नहीं हूँ। GROQ_API_KEY set करें।")}
+    api_key = os.getenv("SARVAM_API_KEY")
+    if not SARVAM_AVAILABLE or not api_key:
+        return {"reply": ("Demo mode: I'm not connected to the real AI right now. Please set SARVAM_API_KEY." if req.language == "english" else "Demo mode: मैं अभी असली AI से connected नहीं हूँ। SARVAM_API_KEY set करें।")}
         
     try:
-        client = AsyncGroq(api_key=api_key)
         
-        system_prompt = f"""You are VoiceKhata AI assistant. You are a helpful conversational business advisor for an Indian kirana store owner. You have access to their business data in the context provided. Answer questions about transactions, udhar, GST, and business advice. Always respond in Hindi or Hinglish. Be specific — cite actual ₹ amounts from the context. Keep responses to 2-4 sentences unless more detail is asked for. Sound like a friendly CA, not a robot.
+        system_prompt = f"""You are VoiceKhata AI assistant. You are a helpful conversational business advisor for an Indian kirana store owner. You have access to their business data in the context provided. Answer questions about transactions, udhar, GST, and business advice. Respond in English if asked in English, or Hindi if asked in Hindi. Be specific — cite actual ₹ amounts from the context. Keep responses to 2-4 sentences unless more detail is asked for. Sound like a friendly CA, not a robot.
 
 Business context:
 {json.dumps(req.context, ensure_ascii=False)}"""
@@ -483,17 +506,29 @@ Business context:
         for m in req.messages:
             messages.append({"role": m.role, "content": m.content})
             
-        response = await client.chat.completions.create(
-            messages=messages,
-            model="llama-3.3-70b-versatile",
-            temperature=0.7,
-            max_tokens=1000,
-        )
+        async with aiohttp.ClientSession() as session:
+            url = "https://api.sarvam.ai/v1/chat/completions"
+            headers = {
+                "API-Subscription-Key": api_key,
+                "Content-Type": "application/json"
+            }
+            payload = {
+                "model": "sarvam-105b",
+                "messages": messages,
+                "temperature": 0.7,
+                "max_tokens": 2000
+            }
+            async with session.post(url, json=payload, headers=headers) as resp:
+                if resp.status != 200:
+                    error_text = await resp.text()
+                    raise Exception(f"Sarvam API Error: {resp.status} - {error_text}")
+                response_json = await resp.json()
+                reply = response_json["choices"][0]["message"]["content"]
         
-        return {"reply": response.choices[0].message.content}
+        return {"reply": reply}
     except Exception as e:
-        print(f"Groq Chat API Error: {e}")
-        # SMART FALLBACK: If Groq API is blocked (403), use a rule-based local AI using the user's real context!
+        print(f"Sarvam Chat API Error: {e}")
+        # SMART FALLBACK: If Sarvam API is blocked/fails, use a rule-based local AI using the user's real context!
         try:
             last_msg = req.messages[-1].content.lower()
             itc = req.context.get("itc", 0)

@@ -78,39 +78,40 @@ export const CryptoCard = ({
       {/* Left Panel - Gradient */}
       <div
         className={cn(
-          "w-[45%] p-4 flex flex-col justify-between text-white",
+          "w-[35%] p-3 md:p-4 flex flex-col justify-between text-white shrink-0",
           colorClass
         )}
       >
-        <div className="w-9 h-9 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+        <div className="w-8 h-8 md:w-9 md:h-9 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
           {icon}
         </div>
-        <div className="mt-4">
-          <p className="text-xl font-bold break-words leading-tight">
-            {percentageChange.toFixed(2)}%
+        <div className="mt-4 w-full">
+          <p className="text-sm md:text-base font-bold leading-tight whitespace-nowrap">
+            {percentageChange.toFixed(1)}%
           </p>
-          <p className="text-xs opacity-80 mt-1 break-words">
-            {formatCurrency(currentPrice, "INR")}
+          <p className="text-[10px] md:text-xs opacity-80 mt-1 whitespace-nowrap">
+            {formatCompact(currentPrice)}
           </p>
         </div>
       </div>
 
       {/* Right Panel - Data */}
-      <div className="w-[55%] p-4 flex flex-col justify-between bg-card text-card-foreground">
-        <div>
-          <div className="flex justify-between items-center">
-            <p className="text-xl font-bold tracking-tight">{formatCurrency(portfolioValue, "INR")}</p>
-            <div className="flex items-center gap-2">
+      <div className="w-[65%] p-3 md:p-4 flex flex-col justify-between bg-card text-card-foreground">
+        <div className="w-full">
+          <div className="flex flex-col gap-1.5 items-start">
+            <p className="text-sm md:text-base font-bold tracking-tight whitespace-nowrap">
+              {formatCurrency(portfolioValue, "INR")}
+            </p>
+            <div className="flex items-center shrink-0">
               <span className={cn(
-                "text-xs font-semibold px-1.5 py-0.5 rounded-full",
-                isPositive ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"
+                "text-[10px] md:text-xs font-semibold px-1.5 py-0.5 rounded-full whitespace-nowrap",
+                isPositive ? "bg-green-500/20 text-green-600 dark:text-green-400" : "bg-red-500/20 text-red-600 dark:text-red-400"
               )}>
                 {isPositive ? '+' : ''}{formatCompact(portfolioChange)}
               </span>
-              <span className="text-xs font-semibold text-muted-foreground bg-secondary px-1.5 py-0.5 rounded-full">{leverage}X</span>
             </div>
           </div>
-          <p className="text-sm text-muted-foreground">{name} / {ticker}</p>
+          <p className="text-xs md:text-sm text-muted-foreground mt-2 leading-tight">{name}</p>
         </div>
 
         <div className="flex justify-between items-center mt-4">
