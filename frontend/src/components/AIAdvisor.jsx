@@ -292,6 +292,7 @@ export default function AIAdvisor({ userId = DEMO_USER_ID }) {
       if (!res.ok) throw new Error(`API error: ${res.status}`);
       const data = await res.json();
       if (!data.scorecard || !data.headline) throw new Error("Invalid response structure");
+      if (data.insights && data.insights.length === 0) throw new Error("Backend returned empty insights due to AI error");
       setInsights(data);
       setMessages([{ role: "assistant", content: t.welcome_live(period) }]);
     } catch {
@@ -308,12 +309,14 @@ export default function AIAdvisor({ userId = DEMO_USER_ID }) {
     setMessages(newMessages);
     setInput("");
     setChatLoading(true);
+
     try {
       const res = await fetch("/api/summary/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: newMessages, context: insights?.raw_payload || mockData, user_id: userId })
+        body: JSON.stringify({ messages: newMessages, context: insights?.raw_payload || mockData, user_id: String(userId), language: lang === "en" ? "english" : "hindi" })
       });
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
       const data = await res.json();
       setMessages(prev => [...prev, { role: "assistant", content: data.reply }]);
     } catch {

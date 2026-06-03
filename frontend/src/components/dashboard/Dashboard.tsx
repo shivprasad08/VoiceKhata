@@ -199,7 +199,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenManualEntry }) => {
 
         {/* Right Sidebar Area: AI Advisor */}
         <div className="w-full xl:w-[400px] shrink-0 xl:sticky xl:top-6">
-          <AIAdvisor userId="demo-rajesh-001" />
+          <AIAdvisor userId={USER_ID} />
         </div>
         
       </div>
