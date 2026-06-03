@@ -4,11 +4,11 @@ VoiceKhata is a modern, AI-powered ledger (khata) system designed specifically f
 
 ![VoiceKhata Dashboard](https://img.shields.io/badge/UI-Paytm_Inspired-00BAF2?style=flat-square)
 ![Stack](https://img.shields.io/badge/Stack-React_%7C_FastAPI_%7C_PostgreSQL-blue?style=flat-square)
-![AI](https://img.shields.io/badge/AI-Groq_%7C_LLaMA_3-orange?style=flat-square)
+![AI](https://img.shields.io/badge/AI-Sarvam_AI-orange?style=flat-square)
 
 ## ✨ Key Features
 
-- **🤖 AI Business Advisor**: A conversational AI powered by Groq (LLaMA 3) that acts as a financial consultant. It analyzes your weekly/monthly data to generate actionable insights (e.g., "Your profit margin is 5.3%, reduce staff costs"). 
+- **🤖 AI Business Advisor**: A conversational AI powered by Sarvam AI that acts as a financial consultant. It analyzes your weekly/monthly data to generate actionable insights (e.g., "Your profit margin is 5.3%, reduce staff costs"). 
 - **🛡️ Smart Fallback Engine**: If cloud AI APIs fail or are blocked (e.g., 403 network errors), the backend automatically falls back to a lightning-fast, rule-based local AI that parses context to answer questions about GST, Udhar, Sales, and Expenses.
 - **⚡ Real-Time Live Feed**: Transactions are streamed instantly to the dashboard using WebSockets.
 - **🎨 Premium UI/UX**: A clean, light-themed aesthetic inspired by modern Indian fintech apps (like Paytm), featuring micro-animations, glassmorphism, and responsive charts.
@@ -24,7 +24,7 @@ VoiceKhata is a modern, AI-powered ledger (khata) system designed specifically f
 ### Backend
 - **FastAPI (Python)**: High-performance async API and WebSocket handling.
 - **SQLAlchemy (Async)**: Modern async ORM for database interactions.
-- **Groq API**: For ultra-low latency LLM inference.
+- **Sarvam AI API**: For highly accurate, localized Indian language models and powerful AI inference.
 
 ### Infrastructure
 - **PostgreSQL**: Robust relational database.
@@ -56,8 +56,7 @@ docker-compose up -d --build
 To enable the real Cloud AI features, you will need to add your API keys to the `.env` file at the root of the project:
 
 ```env
-GROQ_API_KEY=your_groq_api_key_here
-SARVAM_API_KEY=your_sarvam_api_key_here (optional)
+SARVAM_API_KEY=your_sarvam_api_key_here
 ```
 
 *(Note: If no API key is provided, or if the network blocks the connection, the app will gracefully fall back to the built-in Smart Local AI!)*
