@@ -1,12 +1,8 @@
-// src/components/AIAdvisor.jsx
-// VoiceKhata AI Business Advisor — insights panel + chat interface
-
 import { useState, useEffect, useRef } from "react";
 
 const DEMO_USER_ID = "demo-rajesh-001";
 
-// ── mock insights for standalone demo ────────────────────────────────────────
-const MOCK_INSIGHTS = {
+const MOCK_INSIGHTS_HI = {
   headline: "इस हफ्ते ₹2,821 का मुनाफा — लेकिन margin सिर्फ 5.3% है, यह खतरे की घंटी है।",
   scorecard: {
     sales_vs_last_week: "+12.1% — ₹52,814 vs ₹47,120 पिछले हफ्ते",
@@ -27,7 +23,7 @@ const MOCK_INSIGHTS = {
     {
       category: "Sales Pattern",
       title: "31 May को ₹13,762 की sale — इसका कारण समझें",
-      what_happened: "31 May आपका best day था — ₹13,762 की sale, जो average daily sales ₹7,545 से 82% ज्यादा है। यह महीने का आखिरी दिन था जब लोग salary मिलने के बाद खरीदारी करते हैं।",
+      what_happened: "31 May आपका best day था — ₹13,762 की sale, जो average daily sales ₹7,545 से 82% ज्यादा है। यह महीने का आखिरी दिन था যখন लोग salary मिलने के बाद खरीदारी करते हैं।",
       why_it_matters: "अगर आप इस pattern को पहचान लें, तो month-end पर extra stock रख सकते हैं और sales miss नहीं करेंगे।",
       do_this_now: "हर महीने की 28-31 तारीख को Beverages और Snacks का stock 30% extra रखें। Manoj Traders को 27 तारीख को order दें ताकि delivery time पर हो।",
       urgency: "important"
@@ -59,7 +55,7 @@ const MOCK_INSIGHTS = {
   ],
   udhar_action: "Ramesh Gupta (₹2,500, 12 दिन overdue) — आज call करें। Anil Shinde (₹2,200) को WhatsApp भेजें। इस हफ्ते ₹4,000 collect करें।",
   gst_action: "इस महीने GSTR-3B में ITC ₹2,802 claim करें। Net tax payment सिर्फ ₹18। CA को data आज share करें।",
-  next_week_goal: "Target: ₹58,000 sales next week (+10% from this week). Reason: month-end bonus effect खत्म हुआ लेकिन आप Snacks और Beverages में extra stock लेकर compensate कर सकते हैं।"
+  next_week_goal: "Target: ₹58,000 sales next week (+10% from this week)। month-end bonus effect खत्म हुआ लेकिन Snacks और Beverages में extra stock लेकर compensate कर सकते हैं।"
 };
 
 const MOCK_INSIGHTS_EN = {
@@ -76,16 +72,16 @@ const MOCK_INSIGHTS_EN = {
       category: "Profit Warning",
       title: "Margin 5.3% — action needed now",
       what_happened: "Total expenses this week were ₹49,993 while sales were ₹52,814. Staff salary alone is ₹15,810 — meaning for every ₹100 in sales, ₹31.60 goes to salary. Normal kirana margin is 15-20%.",
-      why_it_matters: "If sales drop even slightly next week, you might face a loss. This is not sustainable.",
+      why_it_matters: "If sales drop even slightly next week, you will face a loss. This is not sustainable.",
       do_this_now: "Review helper's working hours. If 2-5 PM is slow, you don't need a helper for that shift. This can save ₹3,000-4,000 monthly.",
       urgency: "urgent"
     },
     {
       category: "Sales Pattern",
-      title: "₹13,762 sales on May 31 — understand why",
-      what_happened: "May 31 was your best day — ₹13,762 in sales, which is 82% higher than the average daily sales of ₹7,545. It was the month-end when people shop after getting their salary.",
+      title: "₹13,762 sales on May 31 — understand the pattern",
+      what_happened: "May 31 was your best day — ₹13,762 in sales, 82% higher than the average daily sales of ₹7,545. It was month-end when people shop after getting their salary.",
       why_it_matters: "If you recognize this pattern, you can stock up extra at month-end and not miss out on sales.",
-      do_this_now: "Keep 30% extra stock of Beverages and Snacks on the 28-31 of every month. Place an order with Manoj Traders on the 27th to ensure timely delivery.",
+      do_this_now: "Keep 30% extra stock of Beverages and Snacks on the 28-31 of every month. Place order with Manoj Traders on the 27th for timely delivery.",
       urgency: "important"
     },
     {
@@ -107,80 +103,131 @@ const MOCK_INSIGHTS_EN = {
     {
       category: "Udhar",
       title: "₹6,400 overdue — this is why cash flow is tight",
-      what_happened: "Ramesh Gupta (₹2,500, 12 days overdue), Anil Shinde (₹2,200, 8 days overdue), Ravi Bhor (₹1,700, 5 days overdue) — all three haven't paid yet. This ₹6,400 is double your current profit of ₹2,821.",
+      what_happened: "Ramesh Gupta (₹2,500, 12 days overdue), Anil Shinde (₹2,200, 8 days overdue), Ravi Bhor (₹1,700, 5 days overdue) — all three haven't paid. This ₹6,400 is double your current profit of ₹2,821.",
       why_it_matters: "This is your money but in someone else's hands. Collecting it is easier than increasing profit.",
-      do_this_now: "Call Ramesh Gupta today — 12 days is too long. Accept even a partial ₹1,500. Send a WhatsApp message to Anil. Target to collect at least ₹4,000 this week.",
+      do_this_now: "Call Ramesh Gupta today — 12 days is too long. Accept even a partial ₹1,500. Send WhatsApp to Anil. Target to collect at least ₹4,000 this week.",
       urgency: "urgent"
     }
   ],
   udhar_action: "Ramesh Gupta (₹2,500, 12 days overdue) — call today. Send WhatsApp to Anil Shinde (₹2,200). Collect ₹4,000 this week.",
   gst_action: "Claim ₹2,802 ITC in GSTR-3B this month. Net tax payment only ₹18. Share data with CA today.",
-  next_week_goal: "Target: ₹58,000 sales next week (+10% from this week). Reason: Month-end bonus effect is over, but you can compensate by keeping extra stock of Snacks and Beverages."
-};
-
-const toLang = (str, lang) => {
-  if (!str) return str;
-  if (lang === 'hindi') {
-    const digits = ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'];
-    return str.toString().replace(/\d/g, d => digits[d]);
-  }
-  return str;
+  next_week_goal: "Target: ₹58,000 sales next week (+10% from this week). Month-end bonus effect is over, but you can compensate by stocking extra Snacks and Beverages."
 };
 
 const URGENCY_STYLE = {
-  urgent: { bg: "bg-red-950/40", border: "border-red-500/40", badge: "bg-red-500", dot: "bg-red-400" },
-  important: { bg: "bg-amber-950/30", border: "border-amber-500/30", badge: "bg-amber-500", dot: "bg-amber-400" },
-  fyi: { bg: "bg-blue-950/30", border: "border-blue-500/30", badge: "bg-blue-500", dot: "bg-blue-400" },
+  urgent: { bg: "bg-red-50", border: "border-red-200", badge: "bg-khata-red", dot: "bg-red-500", text: "text-red-900" },
+  important: { bg: "bg-amber-50", border: "border-amber-200", badge: "bg-amber-500", dot: "bg-amber-500", text: "text-amber-900" },
+  fyi: { bg: "bg-[#00BAF2]-light", border: "border-[#00BAF2]/30", badge: "bg-[#00BAF2]", dot: "bg-[#00BAF2]", text: "text-[#002970]" },
 };
 
-// ── Scorecard row ─────────────────────────────────────────────────────────────
-function ScorecardRow({ label, value, language }) {
-  const isRed = value.toLowerCase().includes("high") || value.toLowerCase().includes("thin") || value.toLowerCase().includes("overdue") || value.toLowerCase().includes("कम") || value.toLowerCase().includes("ज्यादा");
+const L = {
+  hi: {
+    title: "AI Business Advisor",
+    subtitle_weekly: "Weekly analysis",
+    subtitle_monthly: "Monthly analysis",
+    desc: "Detailed insights + conversational Q&A",
+    this_week: "This Week",
+    this_month: "This Month",
+    generate: "Generate Insights →",
+    refresh: "↺ Refresh",
+    chat: "Chat",
+    close_chat: "Close Chat",
+    loading: "AI data analyze कर रहा है...",
+    scorecard: "Scorecard",
+    detailed: "Detailed Insights",
+    what_happened: "क्या हुआ",
+    why_matters: "क्यों मायने रखता है",
+    do_now: "✦ अभी करें",
+    next_goal: "अगले हफ्ते का लक्ष्य:",
+    send: "भेजें",
+    placeholder: "कुछ भी पूछें...",
+    quick: ["Ramesh का कितना udhar है?", "इस हफ्ते का GST कितना है?", "सबसे बड़ा खर्च कौन सा था?"],
+    welcome_live: (p) => `नमस्ते! मैंने आपके ${p === "weekly" ? "इस हफ्ते" : "इस महीने"} के accounts analyze किए हैं। Insights ऊपर देख सकते हैं। कुछ भी पूछें!`,
+    welcome_demo: "नमस्ते! Demo mode में चल रहा हूँ। आप मुझसे business के बारे में कुछ भी पूछ सकते हैं।",
+    conn_err: "Connection issue है। Backend check करें।",
+    scorecard_labels: {
+      sales: "Sales vs Last Wk",
+      expense: "Expense Control",
+      margin: "Profit Margin",
+      gst: "GST Position",
+      udhar: "Udhar Risk",
+    }
+  },
+  en: {
+    title: "AI Business Advisor",
+    subtitle_weekly: "Weekly analysis",
+    subtitle_monthly: "Monthly analysis",
+    desc: "Detailed insights + conversational Q&A",
+    this_week: "This Week",
+    this_month: "This Month",
+    generate: "Generate Insights →",
+    refresh: "↺ Refresh",
+    chat: "Chat",
+    close_chat: "Close Chat",
+    loading: "AI is analyzing data...",
+    scorecard: "Scorecard",
+    detailed: "Detailed Insights",
+    what_happened: "What Happened",
+    why_matters: "Why It Matters",
+    do_now: "✦ Do This Now",
+    next_goal: "Next week goal:",
+    send: "Send",
+    placeholder: "Ask anything...",
+    quick: ["How much does Ramesh owe?", "What is this week's GST?", "What was the biggest expense?"],
+    welcome_live: (p) => `Hello! I have analyzed your ${p === "weekly" ? "this week's" : "this month's"} accounts. You can see insights above. Ask me anything!`,
+    welcome_demo: "Hello! Running in Demo mode. You can ask me anything about your business.",
+    conn_err: "Connection issue. Please check the backend.",
+    scorecard_labels: {
+      sales: "Sales vs Last Wk",
+      expense: "Expense Control",
+      margin: "Profit Margin",
+      gst: "GST Position",
+      udhar: "Udhar Risk",
+    }
+  }
+};
+
+function ScorecardRow({ label, value }) {
+  const isRed = value.toLowerCase().includes("high") || value.toLowerCase().includes("thin") || value.toLowerCase().includes("overdue") || value.toLowerCase().includes("कम") || value.toLowerCase().includes("ज्यादा") || value.toLowerCase().includes("too");
   const isGreen = value.includes("+") && !isRed;
   return (
-    <div className="flex justify-between items-start py-2 border-b border-white/5 last:border-0">
-      <span className="text-xs text-gray-400 w-28 shrink-0">{label}</span>
-      <span className={`text-xs text-right font-mono ${isRed ? "text-red-400" : isGreen ? "text-green-400" : "text-gray-200"}`}>{toLang(value, language)}</span>
+    <div className="flex justify-between items-start py-3 border-b border-gray-100 last:border-0">
+      <span className="text-xs text-[#707070] font-bold w-28 shrink-0">{label}</span>
+      <span className={`text-xs text-right font-mono font-bold ${isRed ? "text-khata-red" : isGreen ? "text-khata-green" : "text-[#101010]"}`}>{value}</span>
     </div>
   );
 }
 
-// ── Insight card ──────────────────────────────────────────────────────────────
-function InsightCard({ insight, index, language }) {
+function InsightCard({ insight, index, lang }) {
   const [open, setOpen] = useState(index === 0);
   const style = URGENCY_STYLE[insight.urgency] || URGENCY_STYLE.fyi;
+  const t = L[lang];
   return (
-    <div className={`rounded-xl border ${style.border} ${style.bg} overflow-hidden transition-all`}>
-      <button
-        onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center gap-3 p-4 text-left hover:bg-white/5 transition-colors"
-      >
+    <div className={`rounded-xl border ${style.border} ${style.bg} overflow-hidden transition-all shadow-sm`}>
+      <button onClick={() => setOpen(o => !o)} className="w-full flex items-center gap-3 p-4 text-left hover:bg-white/40 transition-colors">
         <span className={`w-2 h-2 rounded-full shrink-0 ${style.dot}`} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full text-white ${style.badge}`}>
-              {insight.urgency.toUpperCase()}
-            </span>
-            <span className="text-[10px] text-gray-400">{insight.category}</span>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full text-white ${style.badge}`}>{insight.urgency.toUpperCase()}</span>
+            <span className="text-[10px] text-[#707070] font-bold uppercase">{insight.category}</span>
           </div>
-          <p className="text-sm font-semibold text-white mt-1">{toLang(insight.title, language)}</p>
+          <p className="text-sm font-bold text-[#101010] mt-1.5">{insight.title}</p>
         </div>
-        <span className="text-gray-500 text-xs shrink-0">{open ? "▲" : "▼"}</span>
+        <span className="text-[#707070] text-xs shrink-0">{open ? "▲" : "▼"}</span>
       </button>
-
       {open && (
-        <div className="px-4 pb-4 space-y-3 border-t border-white/5 pt-3">
+        <div className="px-4 pb-4 space-y-3 border-t border-black/5 pt-3">
           <div>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">{language === 'hindi' ? "क्या हुआ" : "What Happened"}</p>
-            <p className="text-sm text-gray-200 leading-relaxed">{toLang(insight.what_happened, language)}</p>
+            <p className="text-[10px] font-bold text-[#707070] uppercase tracking-wider mb-1">{t.what_happened}</p>
+            <p className={`text-sm ${style.text} leading-relaxed font-medium`}>{insight.what_happened}</p>
           </div>
           <div>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">{language === 'hindi' ? "क्यों मायने रखता है" : "Why it Matters"}</p>
-            <p className="text-sm text-gray-300 leading-relaxed">{toLang(insight.why_it_matters, language)}</p>
+            <p className="text-[10px] font-bold text-[#707070] uppercase tracking-wider mb-1">{t.why_matters}</p>
+            <p className={`text-sm ${style.text} leading-relaxed font-medium opacity-80`}>{insight.why_it_matters}</p>
           </div>
-          <div className="bg-green-950/50 border border-green-500/30 rounded-lg p-3">
-            <p className="text-[10px] font-bold text-green-400 uppercase tracking-wider mb-1">{language === 'hindi' ? "✦ अभी करें" : "✦ Do This Now"}</p>
-            <p className="text-sm text-green-200 leading-relaxed font-medium">{toLang(insight.do_this_now, language)}</p>
+          <div className="bg-white border border-[#E8EBF0] rounded-lg p-3 shadow-sm">
+            <p className="text-[10px] font-bold text-[#00BAF2] uppercase tracking-wider mb-1">{t.do_now}</p>
+            <p className="text-sm text-[#101010] leading-relaxed font-bold">{insight.do_this_now}</p>
           </div>
         </div>
       )}
@@ -188,26 +235,37 @@ function InsightCard({ insight, index, language }) {
   );
 }
 
-// ── Chat message ──────────────────────────────────────────────────────────────
 function ChatMessage({ msg }) {
   const isUser = msg.role === "user";
   return (
     <div className={`flex gap-2 ${isUser ? "justify-end" : "justify-start"}`}>
-      {!isUser && (
-        <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-xs shrink-0 mt-1">AI</div>
-      )}
-      <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
-        isUser
-          ? "bg-blue-600 text-white rounded-tr-sm"
-          : "bg-gray-800 text-gray-100 rounded-tl-sm"
-      }`}>
+      {!isUser && (<div className="w-7 h-7 rounded-full bg-[#00BAF2]-light border border-[#00BAF2]/20 flex items-center justify-center text-[10px] shrink-0 mt-1 font-bold text-[#00BAF2]">AI</div>)}
+      <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed font-medium ${isUser ? "bg-[#00BAF2] text-white rounded-tr-sm shadow-sm" : "bg-white border border-[#E8EBF0] text-[#101010] rounded-tl-sm shadow-sm"}`}>
         {msg.content}
       </div>
     </div>
   );
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
+function LangToggle({ lang, setLang }) {
+  return (
+    <div className="flex bg-[#F5F8FA] border border-[#E8EBF0] rounded-lg p-0.5">
+      <button
+        onClick={() => setLang("hi")}
+        className={`px-3 py-1 text-[10px] font-bold rounded-md transition-colors ${lang === "hi" ? "bg-white text-[#101010] shadow-sm" : "text-[#707070] hover:text-[#101010]"}`}
+      >
+        HI
+      </button>
+      <button
+        onClick={() => setLang("en")}
+        className={`px-3 py-1 text-[10px] font-bold rounded-md transition-colors ${lang === "en" ? "bg-white text-[#101010] shadow-sm" : "text-[#707070] hover:text-[#101010]"}`}
+      >
+        EN
+      </button>
+    </div>
+  );
+}
+
 export default function AIAdvisor({ userId = DEMO_USER_ID }) {
   const [insights, setInsights] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -216,10 +274,12 @@ export default function AIAdvisor({ userId = DEMO_USER_ID }) {
   const [input, setInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
   const [period, setPeriod] = useState("weekly");
-  const [language, setLanguage] = useState("hindi");
+  const [lang, setLang] = useState("hi");
   const chatEndRef = useRef(null);
 
-  const activeInsights = (insights && !insights.isMock) ? insights : (language === 'hindi' ? MOCK_INSIGHTS : MOCK_INSIGHTS_EN);
+  const t = L[lang];
+  const mockData = lang === "hi" ? MOCK_INSIGHTS_HI : MOCK_INSIGHTS_EN;
+  const activeInsights = (insights && !insights._isMock) ? insights : mockData;
 
   useEffect(() => {
     if (chatOpen) chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -229,28 +289,14 @@ export default function AIAdvisor({ userId = DEMO_USER_ID }) {
     setLoading(true);
     try {
       const res = await fetch(`/api/summary/ai-generate?user_id=${userId}&period=${period}`);
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
       const data = await res.json();
-      
-      if (!data.scorecard) {
-        throw new Error("Backend not updated to new schema yet");
-      }
-      
+      if (!data.scorecard || !data.headline) throw new Error("Invalid response structure");
       setInsights(data);
-      // Seed chat context with the insights summary
-      setMessages([{
-        role: "assistant",
-        content: language === 'hindi' 
-          ? `नमस्ते! मैंने आपके ${period === "weekly" ? "इस हफ्ते" : "इस महीने"} के accounts analyze किए हैं। Insights ऊपर देख सकते हैं। आप मुझसे कुछ भी पूछ सकते हैं — पुराने transactions, किसी customer का udhar, या कोई calculation।`
-          : `Hello! I have analyzed your accounts for ${period === "weekly" ? "this week" : "this month"}. You can see the insights above. Ask me anything — past transactions, customer dues, or any calculations.`
-      }]);
+      setMessages([{ role: "assistant", content: t.welcome_live(period) }]);
     } catch {
-      setInsights({ isMock: true }); // fallback for demo
-      setMessages([{
-        role: "assistant",
-        content: language === 'hindi'
-          ? "नमस्ते! Demo mode में चल रहा हूँ। आप मुझसे business के बारे में कुछ भी पूछ सकते हैं।"
-          : "Hello! I am running in Demo mode. You can ask me anything about your business."
-      }]);
+      setInsights({ _isMock: true });
+      setMessages([{ role: "assistant", content: t.welcome_demo }]);
     }
     setLoading(false);
   }
@@ -262,175 +308,117 @@ export default function AIAdvisor({ userId = DEMO_USER_ID }) {
     setMessages(newMessages);
     setInput("");
     setChatLoading(true);
-
     try {
       const res = await fetch("/api/summary/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          user_id: String(userId),
-          messages: newMessages.map(m => ({ role: m.role, content: m.content })),
-          context: insights?.raw_payload || MOCK_INSIGHTS,
-          language: language
-        })
+        body: JSON.stringify({ messages: newMessages, context: insights?.raw_payload || mockData, user_id: userId })
       });
       const data = await res.json();
-      const reply = data.reply || "माफ़ करें, कुछ गड़बड़ हुई। फिर से try करें।";
-      setMessages(prev => [...prev, { role: "assistant", content: reply }]);
+      setMessages(prev => [...prev, { role: "assistant", content: data.reply }]);
     } catch {
-      setMessages(prev => [...prev, {
-        role: "assistant",
-        content: "Connection issue है। Backend check करें।"
-      }]);
+      setMessages(prev => [...prev, { role: "assistant", content: t.conn_err }]);
     }
     setChatLoading(false);
   }
 
-  // ── render: no insights yet ─────────────────────────────────────────────
   if (!insights && !loading) {
     return (
-      <div className="bg-gray-900 border border-gray-700 rounded-2xl p-8 flex flex-col items-center gap-4 text-center">
-        <div className="w-14 h-14 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-2xl">🧠</div>
+      <div className="bg-[#FFFFFF] border border-[#E8EBF0] rounded-3xl p-8 flex flex-col items-center gap-5 text-center shadow-paytm">
+        <div className="w-16 h-16 rounded-3xl bg-[#00BAF2]-light border border-[#00BAF2]/20 flex items-center justify-center text-3xl shadow-sm">🧠</div>
         <div>
-          <h3 className="text-white font-bold text-lg">AI Business Advisor</h3>
-          <p className="text-gray-400 text-sm mt-1">{language === 'hindi' ? "Detailed insights + conversational Q&A" : "Detailed insights + conversational Q&A"}</p>
+          <h3 className="text-[#101010] font-bold text-xl">{t.title}</h3>
+          <p className="text-[#707070] text-sm mt-1 font-medium">{t.desc}</p>
         </div>
-        <div className="flex gap-2 mb-2">
-          <div className="flex bg-gray-800 rounded-lg p-1">
-            <button 
-              onClick={() => setLanguage("hindi")}
-              className={`px-4 py-1 text-xs font-bold rounded-md transition-colors ${language === "hindi" ? "bg-gray-600 text-white" : "text-gray-400 hover:text-white"}`}
-            >
-              HI
-            </button>
-            <button 
-              onClick={() => setLanguage("english")}
-              className={`px-4 py-1 text-xs font-bold rounded-md transition-colors ${language === "english" ? "bg-gray-600 text-white" : "text-gray-400 hover:text-white"}`}
-            >
-              EN
-            </button>
-          </div>
-        </div>
-        <div className="flex gap-2">
+        <LangToggle lang={lang} setLang={setLang} />
+        <div className="flex gap-2 w-full">
           {["weekly", "monthly"].map(p => (
-            <button key={p} onClick={() => setPeriod(p)}
-              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${period === p ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"}`}>
-              {p === "weekly" ? "This Week" : "This Month"}
+            <button key={p} onClick={() => setPeriod(p)} className={`flex-1 py-2 rounded-xl text-sm font-bold transition-all ${period === p ? "bg-[#002970] text-white shadow-md" : "bg-[#F5F8FA] border border-[#E8EBF0] text-[#707070] hover:bg-gray-100"}`}>
+              {p === "weekly" ? t.this_week : t.this_month}
             </button>
           ))}
         </div>
-        <button onClick={generateInsights}
-          className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl transition-colors">
-          Generate Insights →
+        <button onClick={generateInsights} className="w-full py-3.5 bg-[#00BAF2] hover:bg-[#00BAF2]-hover text-white font-bold rounded-2xl transition-all shadow-paytm mt-2">
+          {t.generate}
         </button>
       </div>
     );
   }
 
-  // ── render: loading ─────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="bg-gray-900 border border-gray-700 rounded-2xl p-8 flex flex-col items-center gap-4">
-        <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-        <p className="text-gray-400 text-sm">AI data analyze कर रहा है...</p>
+      <div className="bg-[#FFFFFF] border border-[#E8EBF0] rounded-3xl p-10 flex flex-col items-center gap-4 shadow-paytm">
+        <div className="w-10 h-10 border-4 border-[#00BAF2] border-t-transparent rounded-full animate-spin" />
+        <p className="text-[#101010] font-bold">{t.loading}</p>
       </div>
     );
   }
 
-  // ── render: insights + chat ─────────────────────────────────────────────
   return (
-    <div className="bg-gray-900 border border-gray-700 rounded-2xl overflow-hidden flex flex-col h-[calc(100vh-3rem)] max-h-[850px]">
+    <div className="bg-[#FFFFFF] border border-[#E8EBF0] rounded-3xl overflow-hidden flex flex-col h-[calc(100vh-3rem)] max-h-[850px] shadow-paytm">
 
-      {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-gray-700 shrink-0">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-[#E8EBF0] shrink-0 bg-white z-10 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-sm">🧠</div>
+          <div className="w-10 h-10 rounded-xl bg-[#00BAF2]-light border border-[#00BAF2]/20 flex items-center justify-center text-lg">🧠</div>
           <div>
-            <h3 className="text-white font-bold text-sm">AI Business Advisor</h3>
-            <p className="text-gray-500 text-xs">{period === "weekly" ? "Weekly" : "Monthly"} analysis</p>
+            <h3 className="text-[#002970] font-bold text-base">{t.title}</h3>
+            <p className="text-[#707070] text-xs font-bold">{period === "weekly" ? t.subtitle_weekly : t.subtitle_monthly}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {/* Language Toggle */}
-          <div className="flex bg-gray-800 rounded-lg p-0.5">
-            <button 
-              onClick={() => setLanguage("hindi")}
-              className={`px-2 py-1 text-xs font-medium rounded-md transition-colors ${language === "hindi" ? "bg-gray-600 text-white" : "text-gray-400 hover:text-white"}`}
-            >
-              HI
-            </button>
-            <button 
-              onClick={() => setLanguage("english")}
-              className={`px-2 py-1 text-xs font-medium rounded-md transition-colors ${language === "english" ? "bg-gray-600 text-white" : "text-gray-400 hover:text-white"}`}
-            >
-              EN
-            </button>
-          </div>
-          <button onClick={generateInsights}
-            className="text-xs text-gray-400 hover:text-white border border-gray-700 px-3 py-1.5 rounded-lg transition-colors">
-            ↺ Refresh
-          </button>
-          <button onClick={() => setChatOpen(o => !o)}
-            className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all ${chatOpen ? "bg-blue-600 text-white" : "bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:bg-blue-600/30"}`}>
-            💬 {chatOpen ? "Close Chat" : "Chat"}
+          <LangToggle lang={lang} setLang={setLang} />
+          <button onClick={() => setChatOpen(o => !o)} className={`flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-xl transition-all ${chatOpen ? "bg-[#002970] text-white shadow-md" : "bg-[#00BAF2]-light text-[#00BAF2] hover:bg-[#00BAF2] hover:text-white"}`}>
+            💬 {chatOpen ? t.close_chat : t.chat}
           </button>
         </div>
       </div>
 
-      {/* Scrollable Insights Area */}
-      <div className="flex-1 overflow-y-auto">
-        {/* Headline */}
-        <div className="px-5 py-4 bg-gradient-to-r from-blue-950/50 to-gray-900 border-b border-gray-700">
-          <p className="text-white text-sm font-semibold leading-relaxed">{toLang(activeInsights.headline, language)}</p>
+      <div className="flex-1 overflow-y-auto min-h-0 scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent bg-[#F5F8FA]">
+
+        <div className="px-6 py-5 bg-[#00BAF2]-light border-b border-[#E8EBF0]">
+          <p className="text-[#002970] text-sm font-bold leading-relaxed">{activeInsights.headline}</p>
         </div>
 
-        {/* Scorecard */}
-        <div className="px-5 py-4 border-b border-gray-700">
-          <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-3">Scorecard</p>
-          <ScorecardRow label="Sales vs Last Week" value={activeInsights.scorecard.sales_vs_last_week} language={language} />
-          <ScorecardRow label="Expense Control" value={activeInsights.scorecard.expense_control} language={language} />
-          <ScorecardRow label="Profit Margin" value={activeInsights.scorecard.profit_margin} language={language} />
-          <ScorecardRow label="GST Position" value={activeInsights.scorecard.gst_position} language={language} />
-          <ScorecardRow label="Udhar Risk" value={activeInsights.scorecard.udhar_risk} language={language} />
+        <div className="px-6 py-5 border-b border-[#E8EBF0] bg-white mb-2">
+          <p className="text-[10px] text-[#707070] uppercase tracking-wider font-bold mb-3">{t.scorecard}</p>
+          <ScorecardRow label={t.scorecard_labels.sales} value={activeInsights.scorecard.sales_vs_last_week} />
+          <ScorecardRow label={t.scorecard_labels.expense} value={activeInsights.scorecard.expense_control} />
+          <ScorecardRow label={t.scorecard_labels.margin} value={activeInsights.scorecard.profit_margin} />
+          <ScorecardRow label={t.scorecard_labels.gst} value={activeInsights.scorecard.gst_position} />
+          <ScorecardRow label={t.scorecard_labels.udhar} value={activeInsights.scorecard.udhar_risk} />
         </div>
 
-        {/* Insights */}
-        <div className="px-5 py-4 space-y-3 border-b border-gray-700">
-          <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">{language === 'hindi' ? 'Detailed Insights' : 'Detailed Insights'}</p>
-          {activeInsights.insights.map((insight, i) => (
-            <InsightCard key={i} insight={insight} index={i} language={language} />
-          ))}
+        <div className="px-6 py-5 space-y-4 border-b border-[#E8EBF0] bg-white">
+          <p className="text-[10px] text-[#707070] uppercase tracking-wider font-bold">{t.detailed}</p>
+          {activeInsights.insights.map((insight, i) => (<InsightCard key={i} insight={insight} index={i} lang={lang} />))}
         </div>
 
-        {/* Footer alerts */}
-        <div className="px-5 py-4 space-y-2">
+        <div className="px-6 py-6 space-y-3 bg-white">
           {activeInsights.udhar_action && (
-            <div className="flex gap-2 bg-red-950/30 border border-red-500/30 rounded-xl p-3">
-              <span className="text-base shrink-0">⚠️</span>
-              <p className="text-xs text-red-200 leading-relaxed">{toLang(activeInsights.udhar_action, language)}</p>
+            <div className="flex gap-3 bg-red-50 border border-red-100 rounded-2xl p-4 shadow-sm">
+              <span className="text-xl shrink-0 mt-0.5">⚠️</span>
+              <p className="text-sm text-red-900 leading-relaxed font-bold">{activeInsights.udhar_action}</p>
             </div>
           )}
-          <div className="flex gap-2 bg-blue-950/30 border border-blue-500/30 rounded-xl p-3">
-            <span className="text-base shrink-0">📋</span>
-            <p className="text-xs text-blue-200 leading-relaxed">{toLang(activeInsights.gst_action, language)}</p>
+          <div className="flex gap-3 bg-[#00BAF2]-light border border-[#00BAF2]/20 rounded-2xl p-4 shadow-sm">
+            <span className="text-xl shrink-0 mt-0.5">📋</span>
+            <p className="text-sm text-[#002970] leading-relaxed font-bold">{activeInsights.gst_action}</p>
           </div>
-          <div className="flex gap-2 bg-green-950/30 border border-green-500/30 rounded-xl p-3">
-            <span className="text-base shrink-0">🎯</span>
-            <p className="text-xs text-green-200 leading-relaxed"><strong>{language === 'hindi' ? 'Next week goal:' : 'Next week goal:'}</strong> {toLang(activeInsights.next_week_goal, language)}</p>
+          <div className="flex gap-3 bg-green-50 border border-green-100 rounded-2xl p-4 shadow-sm">
+            <span className="text-xl shrink-0 mt-0.5">🎯</span>
+            <p className="text-sm text-green-900 leading-relaxed"><strong className="text-green-800">{t.next_goal}</strong> {activeInsights.next_week_goal}</p>
           </div>
         </div>
       </div>
 
-      {/* Chat panel */}
       {chatOpen && (
-        <div className="border-t border-gray-700 shrink-0">
-          {/* Messages */}
-          <div className="h-40 overflow-y-auto px-4 py-4 space-y-3 bg-gray-950/50">
+        <div className="border-t border-[#E8EBF0] shrink-0 bg-white shadow-[0_-10px_20px_rgba(0,0,0,0.03)] z-20">
+          <div className="h-56 overflow-y-auto px-4 py-4 space-y-3 bg-[#F5F8FA] scrollbar-thin scrollbar-thumb-gray-200">
             {messages.map((msg, i) => <ChatMessage key={i} msg={msg} />)}
             {chatLoading && (
               <div className="flex gap-2">
-                <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-xs shrink-0">AI</div>
-                <div className="bg-gray-800 rounded-2xl rounded-tl-sm px-4 py-2.5 flex items-center gap-1">
+                <div className="w-7 h-7 rounded-full bg-[#00BAF2]-light flex items-center justify-center text-[10px] shrink-0 font-bold text-[#00BAF2]">AI</div>
+                <div className="bg-white border border-[#E8EBF0] rounded-2xl rounded-tl-sm px-4 py-3 flex items-center gap-1 shadow-sm">
                   <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{animationDelay:"0ms"}} />
                   <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{animationDelay:"150ms"}} />
                   <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{animationDelay:"300ms"}} />
@@ -439,39 +427,15 @@ export default function AIAdvisor({ userId = DEMO_USER_ID }) {
             )}
             <div ref={chatEndRef} />
           </div>
-
-          {/* Quick prompts */}
-          <div className="px-4 py-2 flex gap-2 overflow-x-auto border-t border-gray-800">
-            {(language === 'hindi' ? [
-              "Ramesh का कितना udhar है?",
-              "इस हफ्ते का GST कितना है?",
-              "कौन सा दिन सबसे अच्छा रहा?",
-              "सबसे बड़ा खर्च कौन सा था?",
-            ] : [
-              "How much does Ramesh owe?",
-              "What is this week's GST?",
-              "Which was the best day?",
-              "What was the biggest expense?",
-            ]).map(q => (
-              <button key={q} onClick={() => { setInput(q); }}
-                className="shrink-0 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded-full transition-colors whitespace-nowrap">
-                {q}
-              </button>
+          <div className="px-4 py-2 flex gap-2 overflow-x-auto bg-white border-t border-[#E8EBF0] scrollbar-none">
+            {t.quick.map(q => (
+              <button key={q} onClick={() => setInput(q)} className="shrink-0 text-xs font-bold bg-[#F5F8FA] border border-[#E8EBF0] hover:bg-gray-100 text-[#101010] px-3 py-1.5 rounded-full transition-colors whitespace-nowrap">{q}</button>
             ))}
           </div>
-
-          {/* Input */}
-          <div className="flex gap-2 px-4 py-3 border-t border-gray-800">
-            <input
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && sendMessage()}
-              placeholder={language === 'hindi' ? "कुछ भी पूछें..." : "Ask anything..."}
-              className="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
-            />
-            <button onClick={sendMessage} disabled={!input.trim() || chatLoading}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-sm font-semibold rounded-xl transition-colors">
-              {language === 'hindi' ? 'भेजें' : 'Send'}
+          <div className="flex gap-2 px-4 py-3 border-t border-[#E8EBF0] bg-white">
+            <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && sendMessage()} placeholder={t.placeholder} className="flex-1 bg-[#F5F8FA] border border-[#E8EBF0] rounded-xl px-4 py-2.5 text-sm text-[#101010] font-medium placeholder-gray-400 focus:outline-none focus:border-[#00BAF2] focus:ring-1 focus:ring-[#00BAF2] transition-all" />
+            <button onClick={sendMessage} disabled={!input.trim() || chatLoading} className="px-5 py-2.5 bg-[#00BAF2] hover:bg-[#00BAF2]-hover disabled:opacity-50 text-white text-sm font-bold rounded-xl transition-all shadow-md">
+              {t.send}
             </button>
           </div>
         </div>

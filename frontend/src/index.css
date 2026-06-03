@@ -4,6 +4,23 @@
 
 @layer base {
   body {
-    @apply bg-khata-dark text-white font-sans antialiased;
+    @apply font-sans antialiased;
+    background-color: #F5F8FA;
+    color: #101010;
+  }
+
+  /* Paytm-styled scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #E8EBF0;
+    border-radius: 10px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #C0C0C0;
   }
 }

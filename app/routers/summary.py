@@ -31,20 +31,14 @@ class ChatRequest(BaseModel):
     user_id: str
     messages: List[ChatMessageModel]
     context: dict
-    language: str
+    language: str = "hindi"
 
-class AIGenerateResponse(BaseModel):
-    hindi: str
-    english: str
-    metrics: dict
-    generated_at: str
-
-@router.post("/ai-generate", response_model=AIGenerateResponse)
-async def generate_ai_summary(request: AIGenerateRequest, db: AsyncSession = Depends(get_db)):
-    if request.period not in ["weekly", "monthly"]:
+@router.get("/ai-generate")
+async def generate_ai_summary(user_id: int, period: str = "weekly", db: AsyncSession = Depends(get_db)):
+    if period not in ["weekly", "monthly"]:
         raise HTTPException(status_code=400, detail="Period must be weekly or monthly")
         
-    days = 7 if request.period == "weekly" else 30
+    days = 7 if period == "weekly" else 30
     start_date = date.today() - timedelta(days=days)
     
     # 1. Fetch Aggregated Metrics
@@ -53,7 +47,7 @@ async def generate_ai_summary(request: AIGenerateRequest, db: AsyncSession = Dep
         func.sum(case((Transaction.type == 'expense', Transaction.amount), else_=0)).label('total_expenses'),
         func.sum(case((Transaction.gst_applicable == True, Transaction.gst_amount), else_=0)).label('total_itc'),
         func.count(Transaction.id).label('tx_count')
-    ).where(Transaction.user_id == request.user_id).where(Transaction.date >= start_date)
+    ).where(Transaction.user_id == user_id).where(Transaction.date >= start_date)
     
     result = await db.execute(query)
     row = result.first()
@@ -66,7 +60,7 @@ async def generate_ai_summary(request: AIGenerateRequest, db: AsyncSession = Dep
     
     # 2. Top Expense Category
     expense_cat_query = select(Transaction.category, func.sum(Transaction.amount).label('cat_amount'))\
-        .where(Transaction.user_id == request.user_id)\
+        .where(Transaction.user_id == user_id)\
         .where(Transaction.type == 'expense')\
         .where(Transaction.date >= start_date)\
         .group_by(Transaction.category)\
@@ -80,7 +74,7 @@ async def generate_ai_summary(request: AIGenerateRequest, db: AsyncSession = Dep
     
     # 3. Best Sales Day
     best_day_query = select(Transaction.date, func.sum(Transaction.amount).label('day_sales'))\
-        .where(Transaction.user_id == request.user_id)\
+        .where(Transaction.user_id == user_id)\
         .where(Transaction.type == 'sale')\
         .where(Transaction.date >= start_date)\
         .group_by(Transaction.date)\
@@ -104,37 +98,218 @@ async def generate_ai_summary(request: AIGenerateRequest, db: AsyncSession = Dep
     api_key = os.getenv("GROQ_API_KEY")
     
     if not GROQ_AVAILABLE or not api_key:
-        return AIGenerateResponse(
-            hindi=f"इस {request.period} आपका कुल मुनाफा INR {profit:,.0f} रहा। सबसे ज्यादा खर्च {top_expense_category} में हुआ (INR {top_expense_amount:,.0f})।",
-            english=f"This {request.period} your net profit was INR {profit:,.0f}. The highest expense was in {top_expense_category} (INR {top_expense_amount:,.0f}).",
-            metrics=metrics,
-            generated_at=datetime.now().isoformat()
-        )
+        return {
+            "headline": f"इस {period} आपका कुल मुनाफा ₹{profit:,.0f} रहा।",
+            "scorecard": {
+                "sales_vs_last_week": f"₹{sales:,.0f}",
+                "expense_control": f"{top_expense_category}: ₹{top_expense_amount:,.0f}",
+                "profit_margin": f"{(profit/sales*100) if sales > 0 else 0:.1f}%",
+                "gst_position": f"₹{itc:,.0f} ITC available",
+                "udhar_risk": "Data not available"
+            },
+            "insights": [],
+            "udhar_action": None,
+            "gst_action": f"ITC ₹{itc:,.0f} available — claim in GSTR-3B.",
+            "next_week_goal": "Set GROQ_API_KEY for detailed insights.",
+            "generated_at": datetime.now().isoformat()
+        }
         
     try:
         client = AsyncGroq(api_key=api_key)
         
-        system_prompt = """You are a highly analytical and empathetic business advisor for an Indian small shop owner (kirana, electronics, or clothing store). 
-Generate a very detailed, in-depth business summary in BOTH Hindi and English. 
-Your analysis MUST be extremely clear so the vendor is never confused about what to do next.
-Include:
-1. A clear breakdown of their financial health based on the numbers.
-2. Deep insights into why their profit/loss is what it is (e.g., highlighting ratio of expenses to sales).
-3. 2-3 specific, highly actionable steps they must take tomorrow to improve their margins, reduce specific expenses, or boost sales.
-Use Indian context (INR, local market dynamics, festivals, stock replenishment, negotiating with distributors).
-Return ONLY valid JSON with exactly two keys: 'hindi' and 'english'. 
-CRITICAL: The values for these keys MUST be a single formatted markdown string. DO NOT use nested JSON objects."""
-        
-        user_prompt = f"""Here is the business data for the {request.period}:
-- Total Sales: INR {sales}
-- Total Expenses: INR {expenses}  
-- Net Profit: INR {profit}
-- Top expense category: {top_expense_category} (INR {top_expense_amount})
-- Best performing day: {best_day} (INR {best_day_sales})
-- Number of transactions: {count}
-- GST input tax credit available: INR {itc}
+        system_prompt = """You are VoiceKhata AI — a sharp, no-nonsense financial advisor for Indian kirana store owners and small vendors.
+You speak like a trusted CA who knows the business deeply and gives real, specific advice — not textbook gyaan.
 
-Please analyze this data deeply and tell me exactly what my situation is and what specific steps I should take next."""
+YOUR OUTPUT FORMAT — always return a JSON object with these exact keys:
+
+{
+  "headline": "One punchy sentence summarising this period in Hindi — include the profit number",
+  "scorecard": {
+    "sales_vs_last_week": "e.g. +12% — ₹52,814 vs ₹47,120 last week",
+    "expense_control": "e.g. Salary is eating 31.6% of revenue — high risk",
+    "profit_margin": "e.g. 5.3% — dangerously thin for a kirana store",
+    "gst_position": "e.g. ₹2,802 input credit available — claim this month",
+    "udhar_risk": "e.g. ₹6,400 overdue from 3 customers"
+  },
+  "insights": [
+    {
+      "category": "Profit Warning | Sales Pattern | Expense Alert | GST | Udhar | Stock | Opportunity",
+      "title": "Short insight title in Hindi",
+      "what_happened": "2-3 sentences: exactly what the data shows, with specific ₹ amounts, dates, vendor names, customer names. No vague statements.",
+      "why_it_matters": "1-2 sentences: what this means for the business if ignored or acted on.",
+      "do_this_now": "One specific, concrete action the vendor can take THIS WEEK. Name exact vendors, customers, amounts, days.",
+      "urgency": "urgent | important | fyi"
+    }
+  ],
+  "udhar_action": "If any customer is overdue: 'Ramesh Gupta (₹2,500, 12 din se overdue) — aaj call karein. Partial ₹1,000 bhi chalega.' Else null.",
+  "gst_action": "Specific GST step for this month with exact ₹ amount.",
+  "next_week_goal": "One realistic, specific sales target for next week based on the trend. Explain why that number."
+}
+
+STRICT RULES — violating any of these makes the output useless:
+1. Never say "consider reducing expenses" — say WHICH expense, by HOW MUCH, and HOW.
+2. Never say "focus on increasing sales" — say WHICH category, on WHICH days, by what method.
+3. Every insight must cite at least one specific ₹ amount or percentage from the data.
+4. Name specific vendors and customers when the data has them.
+5. Profit margin below 10% = always flag as urgent.
+6. Salary > 25% of revenue = always flag.
+7. Generate exactly 4-5 insights — not more, not less.
+8. Return ONLY the JSON object. No markdown, no preamble, no explanation outside the JSON."""
+        
+        # Build detailed data strings for the user prompt
+        margin = (profit / sales * 100) if sales > 0 else 0
+        prev_start = start_date - timedelta(days=days)
+        
+        # Previous period sales/expenses
+        prev_query = select(
+            func.sum(case((Transaction.type == 'sale', Transaction.amount), else_=0)).label('prev_sales'),
+            func.sum(case((Transaction.type == 'expense', Transaction.amount), else_=0)).label('prev_expenses'),
+        ).where(Transaction.user_id == request.user_id).where(Transaction.date >= prev_start).where(Transaction.date < start_date)
+        prev_result = await db.execute(prev_query)
+        prev_row = prev_result.first()
+        prev_sales = float(prev_row.prev_sales or 0)
+        prev_expenses = float(prev_row.prev_expenses or 0)
+        sales_change = ((sales - prev_sales) / prev_sales * 100) if prev_sales > 0 else 0
+        expense_change = ((expenses - prev_expenses) / prev_expenses * 100) if prev_expenses > 0 else 0
+        
+        # Daily breakdown (last 7 days)
+        daily_query = select(Transaction.date, func.sum(Transaction.amount).label('day_sales'))\
+            .where(Transaction.user_id == request.user_id)\
+            .where(Transaction.type == 'sale')\
+            .where(Transaction.date >= start_date)\
+            .group_by(Transaction.date).order_by(Transaction.date)
+        daily_result = await db.execute(daily_query)
+        daily_rows = daily_result.all()
+        daily_breakdown = "\n".join([f"  {r.date.isoformat()}: ₹{float(r.day_sales):,.0f}" for r in daily_rows]) or "  No daily data available"
+        
+        # Expense categories
+        all_exp_cat_query = select(Transaction.category, func.sum(Transaction.amount).label('cat_amount'))\
+            .where(Transaction.user_id == request.user_id)\
+            .where(Transaction.type == 'expense')\
+            .where(Transaction.date >= start_date)\
+            .group_by(Transaction.category).order_by(desc('cat_amount'))
+        all_exp_result = await db.execute(all_exp_cat_query)
+        exp_rows = all_exp_result.all()
+        expense_categories = "\n".join([f"  {r.category}: ₹{float(r.cat_amount):,.0f}" for r in exp_rows]) or "  No expense data"
+        
+        # Sale categories
+        sale_cat_query = select(Transaction.category, func.sum(Transaction.amount).label('cat_amount'))\
+            .where(Transaction.user_id == request.user_id)\
+            .where(Transaction.type == 'sale')\
+            .where(Transaction.date >= start_date)\
+            .group_by(Transaction.category).order_by(desc('cat_amount'))
+        sale_cat_result = await db.execute(sale_cat_query)
+        sale_rows = sale_cat_result.all()
+        sale_categories = "\n".join([f"  {r.category}: ₹{float(r.cat_amount):,.0f}" for r in sale_rows]) or "  No sales data"
+        
+        # Top vendors by spend
+        vendor_query = select(Transaction.vendor_name, func.sum(Transaction.amount).label('vendor_total'))\
+            .where(Transaction.user_id == user_id)\
+            .where(Transaction.type == 'expense')\
+            .where(Transaction.date >= start_date)\
+            .where(Transaction.vendor_name != None)\
+            .group_by(Transaction.vendor_name).order_by(desc('vendor_total')).limit(5)
+        vendor_result = await db.execute(vendor_query)
+        vendor_rows = vendor_result.all()
+        top_vendors = "\n".join([f"  {r.vendor_name}: ₹{float(r.vendor_total):,.0f}" for r in vendor_rows]) or "  No vendor data"
+        
+        # Biggest single sale
+        biggest_sale_q = select(Transaction.amount, Transaction.description)\
+            .where(Transaction.user_id == user_id)\
+            .where(Transaction.type == 'sale')\
+            .where(Transaction.date >= start_date)\
+            .order_by(desc(Transaction.amount)).limit(1)
+        bs_result = await db.execute(biggest_sale_q)
+        bs_row = bs_result.first()
+        biggest_sale_amount = float(bs_row.amount) if bs_row else 0
+        biggest_sale_desc = bs_row.description if bs_row else "N/A"
+        
+        # Biggest single expense
+        biggest_exp_q = select(Transaction.amount, Transaction.description, Transaction.vendor_name)\
+            .where(Transaction.user_id == user_id)\
+            .where(Transaction.type == 'expense')\
+            .where(Transaction.date >= start_date)\
+            .order_by(desc(Transaction.amount)).limit(1)
+        be_result = await db.execute(biggest_exp_q)
+        be_row = be_result.first()
+        biggest_expense_amount = float(be_row.amount) if be_row else 0
+        biggest_expense_desc = be_row.description if be_row else "N/A"
+        biggest_expense_vendor = be_row.vendor_name if be_row else "N/A"
+        
+        # GST summary
+        gst_collected_q = select(func.sum(Transaction.gst_amount).label('gst_col'))\
+            .where(Transaction.user_id == user_id)\
+            .where(Transaction.type == 'sale')\
+            .where(Transaction.gst_applicable == True)\
+            .where(Transaction.date >= start_date)
+        gst_col_result = await db.execute(gst_collected_q)
+        gst_collected = float(gst_col_result.first().gst_col or 0)
+        
+        gst_paid_q = select(func.sum(Transaction.gst_amount).label('gst_paid'))\
+            .where(Transaction.user_id == user_id)\
+            .where(Transaction.type == 'expense')\
+            .where(Transaction.gst_applicable == True)\
+            .where(Transaction.date >= start_date)
+        gst_paid_result = await db.execute(gst_paid_q)
+        gst_paid = float(gst_paid_result.first().gst_paid or 0)
+        
+        net_gst = gst_collected - gst_paid
+        
+        # Udhar summary (credit transactions)
+        udhar_q = select(func.sum(Transaction.amount).label('total_udhar'))\
+            .where(Transaction.user_id == user_id)\
+            .where(Transaction.type == 'udhar')
+        udhar_result = await db.execute(udhar_q)
+        total_udhar = float(udhar_result.first().total_udhar or 0)
+        
+        # Business name placeholder
+        business_name = f"User {user_id} Business"
+        period_label = f"Last {days} days ({start_date.isoformat()} to {date.today().isoformat()})"
+        
+        user_prompt = f"""Analyse this business data and generate insights:
+
+BUSINESS: {business_name}
+PERIOD: {period_label}
+
+REVENUE & PROFIT
+- Sales this period:      ₹{sales:,.0f}
+- Sales last period:      ₹{prev_sales:,.0f} → {sales_change:+.1f}% change
+- Total expenses:         ₹{expenses:,.0f}
+- Expenses last period:   ₹{prev_expenses:,.0f} → {expense_change:+.1f}% change
+- Net profit:             ₹{profit:,.0f}
+- Profit margin:          {margin:.1f}%
+- Transactions this period: {count}
+
+DAILY SALES BREAKDOWN (last 7 days)
+{daily_breakdown}
+
+EXPENSE BREAKDOWN BY CATEGORY
+{expense_categories}
+
+SALES BREAKDOWN BY CATEGORY
+{sale_categories}
+
+TOP VENDORS (by spend)
+{top_vendors}
+
+NOTABLE TRANSACTIONS
+- Biggest single sale:    ₹{biggest_sale_amount:,.0f} — {biggest_sale_desc}
+- Biggest single expense: ₹{biggest_expense_amount:,.0f} — {biggest_expense_desc} (vendor: {biggest_expense_vendor})
+
+GST SUMMARY
+- GST collected on sales: ₹{gst_collected:,.0f}
+- GST paid on purchases:  ₹{gst_paid:,.0f}
+- Net GST liability:      ₹{net_gst:,.0f}
+- Input credit available: ₹{itc:,.0f}
+
+UDHAR (OUTSTANDING CREDIT)
+- Total outstanding: ₹{total_udhar:,.0f}
+- Overdue entries: Data from udhar records
+- Due this week: Data from udhar records
+
+Now generate specific, data-driven insights. Be their trusted financial advisor. 
+Reference exact numbers. Name specific customers and vendors. 
+Every action must be doable THIS WEEK."""
 
         response = await client.chat.completions.create(
             messages=[
@@ -143,7 +318,7 @@ Please analyze this data deeply and tell me exactly what my situation is and wha
             ],
             model="llama-3.3-70b-versatile",
             temperature=0.6,
-            max_tokens=1500,
+            max_tokens=3000,
             response_format={"type": "json_object"}
         )
         
@@ -151,27 +326,46 @@ Please analyze this data deeply and tell me exactly what my situation is and wha
         
         try:
             parsed = json.loads(response_text)
-            hindi_text = parsed.get("hindi", "Hindi summary unavailable.")
-            english_text = parsed.get("english", "English summary unavailable.")
+            parsed["generated_at"] = datetime.now().isoformat()
+            parsed["raw_payload"] = {
+                "sales": sales, "expenses": expenses, "profit": profit,
+                "itc": itc, "best_day": best_day
+            }
+            return parsed
         except json.JSONDecodeError:
-            hindi_text = "AI output formatting error."
-            english_text = response_text
-            
-        return AIGenerateResponse(
-            hindi=hindi_text,
-            english=english_text,
-            metrics=metrics,
-            generated_at=datetime.now().isoformat()
-        )
+            return {
+                "headline": "AI output parsing error — showing raw data.",
+                "scorecard": {
+                    "sales_vs_last_week": f"₹{sales:,.0f}",
+                    "expense_control": f"{top_expense_category}: ₹{top_expense_amount:,.0f}",
+                    "profit_margin": f"{(profit/sales*100) if sales > 0 else 0:.1f}%",
+                    "gst_position": f"₹{itc:,.0f} ITC",
+                    "udhar_risk": "Parse error"
+                },
+                "insights": [],
+                "udhar_action": None,
+                "gst_action": None,
+                "next_week_goal": None,
+                "generated_at": datetime.now().isoformat()
+            }
         
     except Exception as e:
         print(f"Groq API Error: {e}")
-        return AIGenerateResponse(
-            hindi=f"इस {request.period} आपका कुल मुनाफा INR {profit:,.0f} रहा।",
-            english=f"This {request.period} your net profit was INR {profit:,.0f}.",
-            metrics=metrics,
-            generated_at=datetime.now().isoformat()
-        )
+        return {
+            "headline": f"इस {period} आपका कुल मुनाफा ₹{profit:,.0f} रहा। (AI error — basic data shown)",
+            "scorecard": {
+                "sales_vs_last_week": f"₹{sales:,.0f}",
+                "expense_control": f"{top_expense_category}: ₹{top_expense_amount:,.0f}",
+                "profit_margin": f"{(profit/sales*100) if sales > 0 else 0:.1f}%",
+                "gst_position": f"₹{itc:,.0f} ITC available",
+                "udhar_risk": "Error loading"
+            },
+            "insights": [],
+            "udhar_action": None,
+            "gst_action": f"ITC ₹{itc:,.0f} available.",
+            "next_week_goal": None,
+            "generated_at": datetime.now().isoformat()
+        }
 
 @router.get("/today")
 async def get_today_summary(user_id: int, db: AsyncSession = Depends(get_db)):
@@ -279,23 +473,10 @@ async def chat_with_advisor(req: ChatRequest):
     try:
         client = AsyncGroq(api_key=api_key)
         
-        system_prompt = f"""You are VoiceKhata AI assistant for {req.user_id}. You are a helpful, conversational business advisor for an Indian kirana store owner.
+        system_prompt = f"""You are VoiceKhata AI assistant. You are a helpful conversational business advisor for an Indian kirana store owner. You have access to their business data in the context provided. Answer questions about transactions, udhar, GST, and business advice. Always respond in Hindi or Hinglish. Be specific — cite actual ₹ amounts from the context. Keep responses to 2-4 sentences unless more detail is asked for. Sound like a friendly CA, not a robot.
 
-You have access to this business context:
-{json.dumps(req.context, ensure_ascii=False)}
-
-Answer questions about:
-- Their transactions, sales, expenses
-- Specific customer udhar amounts
-- GST calculations
-- Business advice
-
-Rules:
-- Always respond in {'Hindi (with Hindi numerals like १, २, ३)' if req.language == 'hindi' else 'English'}
-- Be specific — cite actual ₹ amounts from the data
-- If they ask about a transaction or customer not in the data, say you can only see the current period
-- Keep responses concise — 2-4 sentences max unless they ask for detail
-- Sound like a friendly CA, not a robot"""
+Business context:
+{json.dumps(req.context, ensure_ascii=False)}"""
 
         # Prepare messages
         messages = [{"role": "system", "content": system_prompt}]

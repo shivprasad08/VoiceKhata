@@ -30,10 +30,10 @@ const ActionRow: React.FC<ActionRowProps> = ({ userId, onOpenManualEntry }) => {
       toast.success(`Paytm Soundbox: ₹${amount} mil gaye 🎉`, {
         icon: '🔊',
         style: {
-          borderRadius: '10px',
-          background: '#002E6E',
+          borderRadius: '12px',
+          background: '#002970',
           color: '#fff',
-          border: '1px solid #00B9F1'
+          border: '1px solid #00BAF2'
         },
       });
     } catch (error) {
@@ -51,12 +51,12 @@ const ActionRow: React.FC<ActionRowProps> = ({ userId, onOpenManualEntry }) => {
       />
 
       {/* Manual Entry Quick Action */}
-      <div className="bg-khata-card border border-khata-border rounded-xl p-5 flex flex-col justify-center items-center text-center hover:border-gray-600 transition-colors cursor-pointer" onClick={onOpenManualEntry}>
-        <div className="bg-gray-800 p-3 rounded-full mb-3">
-          <PlusCircle size={24} className="text-gray-300" />
+      <div className="bg-[#FFFFFF] border border-[#E8EBF0] rounded-2xl p-6 flex flex-col justify-center items-center text-center hover:shadow-paytm-hover transition-all cursor-pointer shadow-paytm group" onClick={onOpenManualEntry}>
+        <div className="bg-[#00BAF2]-light p-4 rounded-full mb-4 group-hover:scale-110 transition-transform">
+          <PlusCircle size={28} className="text-[#00BAF2]" />
         </div>
-        <h3 className="text-lg font-bold text-white mb-1">Log Transaction</h3>
-        <p className="text-sm text-gray-400">Manually record a sale, expense, or udhar entry.</p>
+        <h3 className="text-xl font-bold text-[#101010] mb-1">Log Transaction</h3>
+        <p className="text-sm text-[#707070] font-medium">Manually record a sale, expense, or udhar entry.</p>
       </div>
       
     </div>

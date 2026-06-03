@@ -150,16 +150,16 @@ const SoundboxListener: React.FC<SoundboxListenerProps> = ({ onPaymentDetected }
   };
 
   return (
-    <div className="bg-[#121212] border border-gray-800 rounded-xl p-5 shadow-lg flex flex-col relative overflow-hidden h-full">
+    <div className="bg-[#FFFFFF] border border-[#E8EBF0] rounded-2xl p-6 flex flex-col relative overflow-hidden h-full shadow-[0_2px_12px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] transition-shadow">
       
       {/* Header */}
       <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-bold text-white flex items-center gap-2">
-          <Volume2 size={20} className="text-paytm-blue" />
+        <h3 className="text-xl font-bold text-[#101010] flex items-center gap-2">
+          <Volume2 size={24} className="text-[#00BAF2]" />
           Soundbox Listener
         </h3>
         {isListening && (
-          <div className="flex items-center gap-2 text-xs font-bold text-khata-green bg-khata-green/10 px-2 py-1 rounded">
+          <div className="flex items-center gap-2 text-xs font-bold text-khata-green bg-green-50 px-3 py-1.5 rounded-full border border-green-100">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-khata-green opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-khata-green"></span>
@@ -174,38 +174,38 @@ const SoundboxListener: React.FC<SoundboxListenerProps> = ({ onPaymentDetected }
         <button
           onClick={toggleListening}
           disabled={!!error}
-          className={`relative flex items-center justify-center w-20 h-20 rounded-full mb-4 transition-all ${
+          className={`relative flex items-center justify-center w-20 h-20 rounded-full mb-6 transition-all ${
             isListening 
-              ? 'bg-paytm-blue shadow-[0_0_20px_rgba(0,185,241,0.5)]' 
-              : 'bg-gray-800 hover:bg-gray-700'
+              ? 'bg-[#00BAF2] shadow-[0_4px_20px_rgba(0,186,242,0.4)]' 
+              : 'bg-[#F5F8FA] hover:bg-[#E8EBF0] shadow-sm'
           }`}
         >
           {isListening ? (
              <>
                <Mic size={32} className="text-white z-10" />
-               <div className="absolute inset-0 rounded-full border-2 border-paytm-blue animate-ping opacity-20"></div>
+               <div className="absolute inset-0 rounded-full border-4 border-[#00BAF2] animate-ping opacity-20"></div>
              </>
           ) : (
-             <MicOff size={32} className="text-gray-400" />
+             <MicOff size={32} className="text-[#707070]" />
           )}
         </button>
 
         {/* Debug Terminal */}
-        <div className="w-full bg-black/50 border border-gray-800 rounded p-3 relative">
-          <div className="absolute top-0 left-0 bg-gray-800 text-[10px] text-gray-400 px-2 py-0.5 rounded-br">TRANSCRIPT</div>
-          <p className="font-mono text-sm text-khata-green mt-2 h-10 flex items-center justify-center text-center">
+        <div className="w-full bg-[#F5F8FA] border border-[#E8EBF0] rounded-xl p-4 relative shadow-sm">
+          <div className="absolute top-0 left-0 bg-[#E8EBF0] text-[10px] font-bold text-[#707070] px-3 py-1 rounded-br-xl rounded-tl-xl tracking-wider">TRANSCRIPT</div>
+          <p className="font-mono text-sm text-[#002970] mt-3 font-bold h-10 flex items-center justify-center text-center">
             {error ? <span className="text-khata-red">{error}</span> : `> ${lastTranscript}`}
           </p>
         </div>
       </div>
 
       {/* Manual Simulator Fallback */}
-      <div className="pt-3 border-t border-gray-800 flex justify-center">
+      <div className="pt-4 border-t border-[#E8EBF0] flex justify-center">
         <button
           onClick={simulatePayment}
-          className="text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 px-4 py-2 rounded flex items-center gap-2 transition-colors border border-gray-700"
+          className="text-sm font-bold bg-[#00BAF2] hover:bg-[#00A8DC] text-white px-5 py-2.5 rounded-xl flex items-center gap-2 transition-colors shadow-md border border-transparent"
         >
-          <Activity size={14} />
+          <Activity size={16} />
           Simulate Payment
         </button>
       </div>

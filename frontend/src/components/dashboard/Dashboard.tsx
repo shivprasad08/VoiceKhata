@@ -162,7 +162,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenManualEntry }) => {
   }, [lastMessage]);
 
   return (
-    <div className="min-h-screen bg-khata-dark text-white pb-10 font-sans">
+    <div className="min-h-screen bg-[#F5F8FA] text-[#101010] pb-10 font-sans">
       <TopBar isConnected={isConnected} />
       
       <div className="flex flex-col xl:flex-row px-4 lg:px-6 py-6 max-w-[1800px] mx-auto gap-6 items-start">
@@ -199,7 +199,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenManualEntry }) => {
 
         {/* Right Sidebar Area: AI Advisor */}
         <div className="w-full xl:w-[400px] shrink-0 xl:sticky xl:top-6">
-          <AIAdvisor userId={USER_ID} />
+          <AIAdvisor userId="demo-rajesh-001" />
         </div>
         
       </div>

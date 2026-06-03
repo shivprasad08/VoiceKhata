@@ -155,7 +155,7 @@ const AISummary: React.FC<AISummaryProps> = ({ userId }) => {
                 <span className="flex items-center gap-1 text-xs bg-khata-red/10 text-khata-red px-2 py-1 rounded font-medium">
                   <TrendingDown size={12} /> {formatCurrency(summaryData.metrics.expenses)}
                 </span>
-                <span className="flex items-center gap-1 text-xs bg-paytm-blue/10 text-paytm-blue px-2 py-1 rounded font-medium hidden sm:flex">
+                <span className="flex items-center gap-1 text-xs bg-[#00BAF2]/10 text-[#00BAF2] px-2 py-1 rounded font-medium hidden sm:flex">
                   <IndianRupee size={12} /> ITC {formatCurrency(summaryData.metrics.itc)}
                 </span>
               </div>

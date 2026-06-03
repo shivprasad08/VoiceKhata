@@ -23,27 +23,27 @@ const TopBar: React.FC<TopBarProps> = ({ isConnected }) => {
   });
 
   return (
-    <div className="flex justify-between items-center py-4 px-6 bg-khata-card border-b border-khata-border">
+    <div className="flex justify-between items-center py-4 px-6 bg-white border-b border-[#E8EBF0] shadow-paytm-header sticky top-0 z-50">
       <div className="flex items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-            VoiceKhata
-            <span className="text-xs bg-paytm-dark text-paytm-blue px-2 py-0.5 rounded-full border border-paytm-blue/30 tracking-normal font-medium">
+          <h1 className="text-2xl font-bold text-[#002970] tracking-tight flex items-center gap-2">
+            <span className="text-[#00BAF2]">Voice</span>Khata
+            <span className="text-[10px] bg-[#00BAF2]-light text-[#002970] px-2 py-0.5 rounded-full font-bold">
               Powered by Sarvam AI
             </span>
           </h1>
-          <p className="text-sm text-gray-400 mt-1">Rajesh Kirana Store, Pune</p>
+          <p className="text-sm text-[#707070] mt-1 font-medium">Rajesh Kirana Store, Pune</p>
         </div>
       </div>
 
       <div className="flex items-center gap-6">
         <div className="text-right">
-          <p className="text-xl font-mono font-medium text-white">{timeString} <span className="text-sm text-gray-500">IST</span></p>
-          <p className="text-sm text-gray-400">{time.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium' })}</p>
+          <p className="text-xl font-mono font-bold text-[#101010]">{timeString} <span className="text-sm text-[#707070]">IST</span></p>
+          <p className="text-sm text-[#707070] font-medium">{time.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium' })}</p>
         </div>
 
-        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border ${isConnected ? 'bg-khata-green/10 text-khata-green border-khata-green/20' : 'bg-khata-red/10 text-khata-red border-khata-red/20'}`}>
-          {isConnected ? <Wifi size={14} /> : <WifiOff size={14} />}
+        <div className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold shadow-sm ${isConnected ? 'bg-[#002970] text-white' : 'bg-khata-red text-white'}`}>
+          {isConnected ? <Wifi size={16} /> : <WifiOff size={16} />}
           {isConnected ? 'Live' : 'Disconnected'}
         </div>
       </div>
